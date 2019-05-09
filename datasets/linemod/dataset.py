@@ -45,6 +45,8 @@ class PoseDataset(data.Dataset):
             while 1:
                 item_count += 1
                 input_line = input_file.readline()
+                print('input_line {0}'.format(input_line))
+                # self.input_line = int(input_line)
                 if self.mode == 'test' and item_count % 10 != 0:
                     continue
                 if not input_line:
@@ -60,6 +62,7 @@ class PoseDataset(data.Dataset):
                 
                 self.list_obj.append(item)
                 self.list_rank.append(int(input_line))
+
 
             meta_file = open('{0}/data/{1}/gt.yml'.format(self.root, '%02d' % item), 'r')
             self.meta[item] = yaml.load(meta_file)
@@ -86,13 +89,15 @@ class PoseDataset(data.Dataset):
         self.num_pt_mesh_small = 500
         self.symmetry_obj_idx = [7, 8]
 
+
     def __getitem__(self, index):
         img = Image.open(self.list_rgb[index])
         ori_img = np.array(img)
         depth = np.array(Image.open(self.list_depth[index]))
         label = np.array(Image.open(self.list_label[index]))
         obj = self.list_obj[index]
-        rank = self.list_rank[index]        
+        rank = self.list_rank[index]
+        # input_line = np.array(self.input_line)
 
         if obj == 2:
             for i in range(0, len(self.meta[obj][rank])):
@@ -189,7 +194,8 @@ class PoseDataset(data.Dataset):
                self.norm(torch.from_numpy(img_masked.astype(np.float32))), \
                torch.from_numpy(target.astype(np.float32)), \
                torch.from_numpy(model_points.astype(np.float32)), \
-               torch.LongTensor([self.objlist.index(obj)])
+               torch.LongTensor([self.objlist.index(obj)]), \
+               # torch.from_numpy(input_line.astype(np.int32))
 
     def __len__(self):
         return self.length

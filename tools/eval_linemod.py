@@ -21,6 +21,7 @@ from lib.loss import Loss
 from lib.loss_refiner import Loss_refine
 from lib.transformations import euler_matrix, quaternion_matrix, quaternion_from_matrix
 from lib.knn.__init__ import KNearestNeighbor
+import sys
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--dataset_root', type=str, default = '', help='dataset root dir')
@@ -35,6 +36,9 @@ iteration = 2
 bs = 1
 dataset_config_dir = 'datasets/linemod/dataset_config'
 output_result_dir = 'experiments/eval_result/linemod'
+result_wo_refine_dir = 'experiments/eval_result/linemod/Densefusion_wo_refine_result'
+result_refine_dir = 'experiments/eval_result/linemod/Densefusion_iterative_result'
+
 knn = KNearestNeighbor(1)
 
 estimator = PoseNet(num_points = num_points, num_obj = num_objects)
@@ -49,7 +53,7 @@ refiner.eval()
 testdataset = PoseDataset_linemod('eval', num_points, False, opt.dataset_root, 0.0, True)
 testdataloader = torch.utils.data.DataLoader(testdataset, batch_size=1, shuffle=False, num_workers=10)
 
-sym_list = testdataset.get_sym_list()
+sym_list = testdataset.get_sym_list() # symmetry_obj_idx
 num_points_mesh = testdataset.get_num_points_mesh()
 criterion = Loss(num_points_mesh, sym_list)
 criterion_refine = Loss_refine(num_points_mesh, sym_list)
@@ -66,6 +70,8 @@ num_count = [0 for i in range(num_objects)]
 fw = open('{0}/eval_result_logs.txt'.format(output_result_dir), 'w')
 
 for i, data in enumerate(testdataloader, 0):
+    print(i)
+    fw.write('{0}\n'.format(i))
     points, choose, img, target, model_points, idx = data
     if len(points.size()) == 2:
         print('No.{0} NOT Pass! Lost detection!'.format(i))
@@ -76,7 +82,15 @@ for i, data in enumerate(testdataloader, 0):
                                                      Variable(img).cuda(), \
                                                      Variable(target).cuda(), \
                                                      Variable(model_points).cuda(), \
-                                                     Variable(idx).cuda()
+                                                     Variable(idx).cuda(), \
+                                                     # Variable(input_line).cuda()
+    print(idx[0].item()) # class id
+    fw.write('{0}\n'.format(idx[0].item()))
+    # print(input_line[0].item())  # class id
+    # fw.write('{0}\n'.format(input_line[0].item()))
+
+    my_result_wo_refine = []
+    my_result = []
 
     pred_r, pred_t, pred_c, emb = estimator(img, points, choose, idx)
     pred_r = pred_r / torch.norm(pred_r, dim=2).view(1, num_points, 1)
@@ -88,12 +102,14 @@ for i, data in enumerate(testdataloader, 0):
     my_t = (points.view(bs * num_points, 1, 3) + pred_t)[which_max[0]].view(-1).cpu().data.numpy()
     my_pred = np.append(my_r, my_t)
 
+    my_result_wo_refine.append(my_pred.tolist())
+
     for ite in range(0, iteration):
         T = Variable(torch.from_numpy(my_t.astype(np.float32))).cuda().view(1, 3).repeat(num_points, 1).contiguous().view(1, num_points, 3)
         my_mat = quaternion_matrix(my_r)
         R = Variable(torch.from_numpy(my_mat[:3, :3].astype(np.float32))).cuda().view(1, 3, 3)
         my_mat[0:3, 3] = my_t
-        
+
         new_points = torch.bmm((points - T), R).contiguous()
         pred_r, pred_t = refiner(new_points, emb, idx)
         pred_r = pred_r.view(1, 1, -1)
