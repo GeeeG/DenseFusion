@@ -22,6 +22,7 @@ from lib.loss_refiner import Loss_refine
 from lib.transformations import euler_matrix, quaternion_matrix, quaternion_from_matrix
 from lib.knn.__init__ import KNearestNeighbor
 import sys
+import scipy.io as scio
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--dataset_root', type=str, default = '', help='dataset root dir')
@@ -131,6 +132,10 @@ for i, data in enumerate(testdataloader, 0):
         my_t = my_t_final
 
     # Here 'my_pred' is the final pose estimation result after refinement ('my_r': quaternion, 'my_t': translation)
+    my_result.append(my_pred.tolist())
+
+    scio.savemat('{0}/{1}_{2}.mat'.format(result_wo_refine_dir, '%02d' % idx, '%04d' % rank), {'poses': my_result_wo_refine})
+    scio.savemat('{0}/{1}_{2}.mat'.format(result_refine_dir, '%02d' % idx, '%04d' % rank), {'poses': my_result})
 
     model_points = model_points[0].cpu().detach().numpy()
     my_r = quaternion_matrix(my_r)[:3, :3]
