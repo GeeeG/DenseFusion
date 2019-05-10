@@ -70,24 +70,25 @@ num_count = [0 for i in range(num_objects)]
 fw = open('{0}/eval_result_logs.txt'.format(output_result_dir), 'w')
 
 for i, data in enumerate(testdataloader, 0):
-    print(i)
-    fw.write('{0}\n'.format(i))
-    points, choose, img, target, model_points, idx = data
+    print('(eval) counter {0}'.format(i))
+    fw.write('counter {0}\n'.format(i))
+    points, choose, img, target, model_points, idx, rank = data
     if len(points.size()) == 2:
         print('No.{0} NOT Pass! Lost detection!'.format(i))
         fw.write('No.{0} NOT Pass! Lost detection!\n'.format(i))
         continue
-    points, choose, img, target, model_points, idx = Variable(points).cuda(), \
+    points, choose, img, target, model_points, idx, rank = Variable(points).cuda(), \
                                                      Variable(choose).cuda(), \
                                                      Variable(img).cuda(), \
                                                      Variable(target).cuda(), \
                                                      Variable(model_points).cuda(), \
                                                      Variable(idx).cuda(), \
-                                                     # Variable(input_line).cuda()
-    print(idx[0].item()) # class id
-    fw.write('{0}\n'.format(idx[0].item()))
-    # print(input_line[0].item())  # class id
-    # fw.write('{0}\n'.format(input_line[0].item()))
+                                                     Variable(rank).cuda()
+
+    print('(eval) idx {0}'.format(idx[0].item())) # class id
+    fw.write('idx {0}\n'.format(idx[0].item()))
+    print('(eval) rank {0}'.format(rank[0].item()))  # class id
+    fw.write('rank {0}\n'.format(rank[0].item()))
 
     my_result_wo_refine = []
     my_result = []

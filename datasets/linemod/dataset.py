@@ -45,8 +45,6 @@ class PoseDataset(data.Dataset):
             while 1:
                 item_count += 1
                 input_line = input_file.readline()
-                print('input_line {0}'.format(input_line))
-                # self.input_line = int(input_line)
                 if self.mode == 'test' and item_count % 10 != 0:
                     continue
                 if not input_line:
@@ -97,7 +95,7 @@ class PoseDataset(data.Dataset):
         label = np.array(Image.open(self.list_label[index]))
         obj = self.list_obj[index]
         rank = self.list_rank[index]
-        # input_line = np.array(self.input_line)
+        # print('(dataset) rank {0}'.format(rank))
 
         if obj == 2:
             for i in range(0, len(self.meta[obj][rank])):
@@ -135,7 +133,8 @@ class PoseDataset(data.Dataset):
         choose = mask[rmin:rmax, cmin:cmax].flatten().nonzero()[0]
         if len(choose) == 0:
             cc = torch.LongTensor([0])
-            return(cc, cc, cc, cc, cc, cc)
+            ccc = torch.LongTensor([8888])
+            return(cc, cc, cc, cc, cc, cc, ccc)
 
         if len(choose) > self.num:
             c_mask = np.zeros(len(choose), dtype=int)
@@ -195,7 +194,8 @@ class PoseDataset(data.Dataset):
                torch.from_numpy(target.astype(np.float32)), \
                torch.from_numpy(model_points.astype(np.float32)), \
                torch.LongTensor([self.objlist.index(obj)]), \
-               # torch.from_numpy(input_line.astype(np.int32))
+               torch.from_numpy(np.array(rank))
+
 
     def __len__(self):
         return self.length
